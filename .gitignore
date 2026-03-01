@@ -291,4 +291,6 @@ $RECYCLE.BIN/
 # End of https://www.toptal.com/developers/gitignore/api/python,go,linux,macos,windows,visualstudiocode
 
 # Failsafe to avoid pushing the testing solution to the git commit history
-/src/common/middleware/middleware_rabbitmq.py
+python/src/common/middleware/middleware_rabbitmq.py
+
+golang/internal/solution
