@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"slices"
 	"testing"
-	"time"
 
 	m "github.com/7574-sistemas-distribuidos/tp-mom/golang/internal/middleware"
 	s "github.com/7574-sistemas-distribuidos/tp-mom/golang/internal/solution"
@@ -16,6 +15,8 @@ func GetExchangeMiddleware(exchange string, keys []string) (m.Middleware, error)
 	// devolver su implementación del middleware para Exchanges
 	return s.NewRabbitmqExchangeMiddleware(exchange, keys, GetCredentials())
 }
+
+var w_opts = GetWaitOptions()
 
 func TestOneToOneExchange(t *testing.T) {
 
@@ -41,7 +42,8 @@ func TestOneToOneExchange(t *testing.T) {
 
 	}()
 
-	time.Sleep(time.Millisecond * 200)
+	wait_err := WaitForExchangeBindings(exchange, keys[0], 1, w_opts)
+	assert.NoError(t, wait_err)
 
 	send_error := producer_mw.Send(m.Message{Body: expected_msg})
 	assert.NoError(t, send_error)
@@ -78,7 +80,8 @@ func TestOneToManyExchange(t *testing.T) {
 		}(i)
 	}
 
-	time.Sleep(time.Millisecond * 200)
+	wait_err := WaitForExchangeBindings(exchange, keys[0], num_of_consumers, w_opts)
+	assert.NoError(t, wait_err)
 
 	for range num_of_consumers {
 		producer_mw, init_err := GetExchangeMiddleware(exchange, keys)
@@ -131,7 +134,8 @@ func TestManyToOneExchange(t *testing.T) {
 		assert.NoError(t, close_err)
 	}()
 
-	time.Sleep(time.Millisecond * 100)
+	wait_err := WaitForExchangeBindings(exchange, keys[0], 1, w_opts)
+	assert.NoError(t, wait_err)
 
 	for i := range num_of_producers {
 		go func(p_id int) {

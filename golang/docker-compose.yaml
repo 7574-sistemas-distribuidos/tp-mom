@@ -26,6 +26,7 @@ services:
     environment:
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
+      API_PORT: 15672
     depends_on:
       rabbitmq:
         condition: service_healthy
