@@ -10,4 +10,4 @@ COPY tests ./tests
 RUN go mod download
 
 
-ENTRYPOINT ["go", "test", "-v", "./..."]
+ENTRYPOINT ["go", "test", "-v", "./...", "-count=1"]
