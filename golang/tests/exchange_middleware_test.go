@@ -22,7 +22,7 @@ func TestOneToOneExchange(t *testing.T) {
 
 	// Arrange
 	expected_msg := "Hello World!"
-	exchange := "text_exchange"
+	exchange := "test_exchange"
 	keys := []string{"TestOneToOneExchange"}
 
 	producer_mw, init_error := GetExchangeMiddleware(exchange, keys)
@@ -58,7 +58,7 @@ func TestOneToOneExchange(t *testing.T) {
 func TestOneToManyExchange(t *testing.T) {
 	// Arrange
 	expected_msg := "Hello World!"
-	exchange := "text_exchange"
+	exchange := "test_exchange"
 	keys := []string{"TestOneToManyExchange"}
 	num_of_consumers := 3
 
@@ -112,7 +112,7 @@ func TestOneToManyExchange(t *testing.T) {
 func TestManyToOneExchange(t *testing.T) {
 	// Arrange
 	num_of_producers := 3
-	exchange := "text_exchange"
+	exchange := "test_exchange"
 	keys := []string{"TestManyToOneExchange"}
 
 	GetExepctedMsg := func(num int) string {
