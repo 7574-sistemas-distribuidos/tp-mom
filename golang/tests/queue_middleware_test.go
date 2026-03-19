@@ -194,3 +194,72 @@ func TestManyToOne(t *testing.T) {
 		assert.True(t, comparison_results[i])
 	}
 }
+func TestManyToMany(t *testing.T) {
+	num_of_producers := 3
+	num_of_consumers := 3
+	msgs_per_producer := 8
+
+	getQueueName := func(cons_id int) string {
+		return fmt.Sprintf("TestManyToMany_%d", cons_id)
+	}
+	getExpectedMessage := func(prod_id int, cons_id int, msg_num int) string {
+		return fmt.Sprintf("Hello %d From %d (%d)", cons_id, prod_id, msg_num)
+	}
+
+	expected_msgs := make([]string, 0)
+	for i := range num_of_consumers {
+		for j := range num_of_producers {
+			for k := range msgs_per_producer {
+				expected_msgs = append(expected_msgs, getExpectedMessage(j, i, k))
+			}
+		}
+	}
+
+	msgs := make(chan string)
+	for i := range num_of_consumers {
+		go func(c_id int) {
+			consumer_mw, init_err := GetQueueMiddleware(getQueueName(i))
+			assert.NoError(t, init_err)
+
+			cb := func(msg m.Message) {
+				msgs <- msg.Body
+			}
+
+			cons_err := consumer_mw.StartConsuming(cb)
+			assert.NoError(t, cons_err)
+
+			close_err := consumer_mw.Close()
+			assert.NoError(t, close_err)
+		}(i)
+	}
+
+	for i := range num_of_producers {
+		go func(p_id int) {
+			for c_id := range num_of_consumers {
+				producer_mw, init_err := GetQueueMiddleware(getQueueName(c_id))
+				assert.NoError(t, init_err)
+
+				for i := range msgs_per_producer {
+					send_err := producer_mw.Send(m.Message{Body: getExpectedMessage(p_id, c_id, i)})
+					assert.NoError(t, send_err)
+				}
+
+				close_err := producer_mw.Close()
+				assert.NoError(t, close_err)
+			}
+		}(i)
+	}
+
+	comparison_results := make([]bool, 0)
+	msgs_sent := msgs_per_producer * num_of_producers * num_of_consumers
+	for range msgs_sent {
+		received_msg := <-msgs
+		comparison_results = append(comparison_results, slices.Contains(expected_msgs, received_msg))
+		Remove(expected_msgs, received_msg) // Does nothing if not present
+	}
+	close(msgs)
+
+	for i := range msgs_sent {
+		assert.True(t, comparison_results[i])
+	}
+}
