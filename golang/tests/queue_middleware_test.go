@@ -67,23 +67,26 @@ func TestOneToOne(t *testing.T) {
 	assert.True(t, isMessageEqual)
 }
 
-// TODO: All consume from same queue
 func TestOneToMany(t *testing.T) {
 
 	// Arrange
 	num_of_consumers := 3
+	num_of_msgs := 10
 
 	GetExepctedMsg := func(num int) string {
 		return "Hello " + fmt.Sprint(num)
 	}
 
-	GetQueueName := func(num int) string {
-		return "TestOneToMany_" + fmt.Sprint(num)
+	queue_name := "TestOneToMany"
+
+	expected_msgs := make([]string, 0)
+	for i := range num_of_msgs {
+		expected_msgs = append(expected_msgs, GetExepctedMsg(i))
 	}
 
 	// Act
 	for i := range num_of_consumers {
-		producer_mw, init_err := GetQueueMiddleware(GetQueueName(i))
+		producer_mw, init_err := GetQueueMiddleware(queue_name)
 		assert.NoError(t, init_err)
 
 		send_err := producer_mw.Send(m.Message{Body: GetExepctedMsg(i)})
@@ -93,14 +96,14 @@ func TestOneToMany(t *testing.T) {
 		assert.NoError(t, close_err)
 	}
 
-	msgEquals := make(chan bool)
+	msgs := make(chan string)
 	for i := range num_of_consumers {
 		go func(num int) {
 			compare_msg := func(msg m.Message) {
-				msgEquals <- msg.Body == GetExepctedMsg(num)
+				msgs <- msg.Body
 			}
 
-			consumer_mw, init_err := GetQueueMiddleware(GetQueueName(num))
+			consumer_mw, init_err := GetQueueMiddleware(queue_name)
 			assert.NoError(t, init_err)
 
 			cons_err := consumer_mw.StartConsuming(compare_msg)
@@ -114,11 +117,12 @@ func TestOneToMany(t *testing.T) {
 
 	comparison_results := make([]bool, 0)
 	for range num_of_consumers {
-		a := <-msgEquals
-		comparison_results = append(comparison_results, a)
+		received_msg := <-msgs
+		comparison_results = append(comparison_results, slices.Contains(expected_msgs, received_msg))
+		Remove(expected_msgs, received_msg) // Does nothing if not present
 	}
 
-	close(msgEquals)
+	close(msgs)
 
 	// Assert
 	for i := range num_of_consumers {
