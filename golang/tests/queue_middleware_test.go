@@ -28,6 +28,7 @@ func TestCanConnect(t *testing.T) {
 func TestOneToOne(t *testing.T) {
 
 	// Arrange
+	msgs_per_producer := 8
 	queue_name := "TestOneToOne"
 	producer_mw, init_error := GetQueueMiddleware(queue_name)
 	assert.NoError(t, init_error)
@@ -49,10 +50,15 @@ func TestOneToOne(t *testing.T) {
 		assert.NoError(t, cons_err)
 	}()
 
-	send_error := producer_mw.Send(m.Message{Body: expected_msg})
-	assert.NoError(t, send_error)
+	for range msgs_per_producer {
+		send_error := producer_mw.Send(m.Message{Body: expected_msg})
+		assert.NoError(t, send_error)
+	}
 
-	isMessageEqual := <-msgEquals
+	isMessageEqual := true
+	for range msgs_per_producer {
+		isMessageEqual = isMessageEqual && <-msgEquals
+	}
 
 	close_error := producer_mw.Close()
 	assert.NoError(t, close_error)
@@ -61,6 +67,7 @@ func TestOneToOne(t *testing.T) {
 	assert.True(t, isMessageEqual)
 }
 
+// TODO: All consume from same queue
 func TestOneToMany(t *testing.T) {
 
 	// Arrange
@@ -122,6 +129,7 @@ func TestOneToMany(t *testing.T) {
 func TestManyToOne(t *testing.T) {
 	// Arrange
 	num_of_producers := 3
+	msgs_per_producer := 8
 
 	GetExepctedMsg := func(num int) string {
 		return "Hello From " + fmt.Sprint(num)
@@ -135,8 +143,10 @@ func TestManyToOne(t *testing.T) {
 			producer_mw, init_err := GetQueueMiddleware(queue_name)
 			assert.NoError(t, init_err)
 
-			send_err := producer_mw.Send(m.Message{Body: GetExepctedMsg(i)})
-			assert.NoError(t, send_err)
+			for i := range msgs_per_producer {
+				send_err := producer_mw.Send(m.Message{Body: GetExepctedMsg(i)})
+				assert.NoError(t, send_err)
+			}
 
 			close_err := producer_mw.Close()
 			assert.NoError(t, close_err)
@@ -145,7 +155,9 @@ func TestManyToOne(t *testing.T) {
 
 	expectedMsgs := make([]string, 0)
 	for i := range num_of_producers {
-		expectedMsgs = append(expectedMsgs, GetExepctedMsg(i))
+		for range msgs_per_producer {
+			expectedMsgs = append(expectedMsgs, GetExepctedMsg(i))
+		}
 	}
 
 	msgs := make(chan string)
@@ -165,7 +177,7 @@ func TestManyToOne(t *testing.T) {
 	}()
 
 	comparison_results := make([]bool, 0)
-	for range num_of_producers {
+	for range num_of_producers * msgs_per_producer {
 		received_msg := <-msgs
 		comparison_results = append(comparison_results, slices.Contains(expectedMsgs, received_msg))
 		Remove(expectedMsgs, received_msg) // Does nothing if not present
