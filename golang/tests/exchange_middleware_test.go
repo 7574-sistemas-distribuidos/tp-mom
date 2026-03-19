@@ -121,6 +121,84 @@ func TestOneToManyExchange(t *testing.T) {
 	close(msgEquals)
 }
 
+func TestOneToManyExchangeDifferentKeys(t *testing.T) {
+	// Arrange
+	getExpectedMessage := func(group_num int) string {
+		return fmt.Sprintf("Hello Group %d\n", group_num)
+	}
+
+	getGroupKeys := func(group_num int) []string {
+		return []string{fmt.Sprintf("TestOneToManyExchange_%d", group_num)}
+	}
+
+	exchange := "test_exchange"
+	num_of_consumers_by_group := 3
+	msgs_per_producer := 8
+	num_of_groups := 2
+
+	messages_to_send := num_of_consumers_by_group * num_of_groups * msgs_per_producer
+
+	// Act
+	consumer_mws := make([]m.Middleware, 0)
+	msgEquals := make(chan bool, messages_to_send)
+	for i := range num_of_groups {
+		for range num_of_consumers_by_group {
+			go func(group_id int) {
+				consumer_mw, init_err := GetExchangeMiddleware(exchange, getGroupKeys(group_id))
+				assert.NoError(t, init_err)
+
+				consumer_mws = append(consumer_mws, consumer_mw)
+
+				cons_err := consumer_mw.StartConsuming(func(msg m.Message) {
+					msgEquals <- msg.Body == getExpectedMessage(group_id)
+				})
+				assert.NoError(t, cons_err)
+			}(i)
+		}
+	}
+
+	for i := range num_of_groups {
+		for _, key := range getGroupKeys(i) {
+			wait_err := WaitForExchangeBindings(exchange, key, num_of_consumers_by_group, w_opts)
+			assert.NoError(t, wait_err)
+		}
+	}
+
+	for i := range num_of_groups {
+		go func(group_num int) {
+			producer_mw, init_err := GetExchangeMiddleware(exchange, getGroupKeys(group_num))
+			assert.NoError(t, init_err)
+
+			for range msgs_per_producer {
+				send_err := producer_mw.Send(m.Message{Body: getExpectedMessage(group_num)})
+				assert.NoError(t, send_err)
+			}
+
+			close_err := producer_mw.Close()
+			assert.NoError(t, close_err)
+		}(i)
+	}
+
+	comparison_results := make([]bool, 0)
+
+	for range messages_to_send {
+		comparison_results = append(comparison_results, <-msgEquals)
+	}
+
+	// Assert
+	assert.Equal(t, messages_to_send, len(comparison_results))
+	for i := range messages_to_send {
+		assert.True(t, comparison_results[i])
+	}
+
+	for i := range num_of_groups * num_of_consumers_by_group {
+		close_err := consumer_mws[i].Close()
+		assert.NoError(t, close_err)
+	}
+
+	close(msgEquals)
+}
+
 func TestManyToOneExchange(t *testing.T) {
 	// Arrange
 	num_of_producers := 3
@@ -183,3 +261,7 @@ func TestManyToOneExchange(t *testing.T) {
 	}
 	close(msgs)
 }
+
+// TODO: Many to Many
+
+// TODO: Stop Consuming and Start Consuming?
