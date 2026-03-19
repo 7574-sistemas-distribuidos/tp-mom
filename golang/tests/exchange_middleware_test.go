@@ -206,7 +206,7 @@ func TestManyToOneExchange(t *testing.T) {
 	exchange := "test_exchange"
 	keys := []string{"TestManyToOneExchange"}
 
-	GetExepctedMsg := func(num int) string {
+	getExpectedMsg := func(num int) string {
 		return "Hello From " + fmt.Sprint(num)
 	}
 
@@ -230,7 +230,7 @@ func TestManyToOneExchange(t *testing.T) {
 			assert.NoError(t, init_err)
 
 			for range msgs_per_producer {
-				send_err := producer_mw.Send(m.Message{Body: GetExepctedMsg(i)})
+				send_err := producer_mw.Send(m.Message{Body: getExpectedMsg(i)})
 				assert.NoError(t, send_err)
 			}
 			close_err := producer_mw.Close()
@@ -241,7 +241,7 @@ func TestManyToOneExchange(t *testing.T) {
 	expectedMsgs := make([]string, 0)
 	for i := range num_of_producers {
 		for range msgs_per_producer {
-			expectedMsgs = append(expectedMsgs, GetExepctedMsg(i))
+			expectedMsgs = append(expectedMsgs, getExpectedMsg(i))
 		}
 	}
 

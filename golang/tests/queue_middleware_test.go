@@ -73,7 +73,7 @@ func TestOneToMany(t *testing.T) {
 	num_of_consumers := 3
 	num_of_msgs := 10
 
-	GetExepctedMsg := func(num int) string {
+	getExpectedMsg := func(num int) string {
 		return "Hello " + fmt.Sprint(num)
 	}
 
@@ -81,7 +81,7 @@ func TestOneToMany(t *testing.T) {
 
 	expected_msgs := make([]string, 0)
 	for i := range num_of_msgs {
-		expected_msgs = append(expected_msgs, GetExepctedMsg(i))
+		expected_msgs = append(expected_msgs, getExpectedMsg(i))
 	}
 
 	// Act
@@ -89,7 +89,7 @@ func TestOneToMany(t *testing.T) {
 		producer_mw, init_err := GetQueueMiddleware(queue_name)
 		assert.NoError(t, init_err)
 
-		send_err := producer_mw.Send(m.Message{Body: GetExepctedMsg(i)})
+		send_err := producer_mw.Send(m.Message{Body: getExpectedMsg(i)})
 		assert.NoError(t, send_err)
 
 		close_err := producer_mw.Close()
@@ -135,7 +135,7 @@ func TestManyToOne(t *testing.T) {
 	num_of_producers := 3
 	msgs_per_producer := 8
 
-	GetExepctedMsg := func(num int) string {
+	getExpectedMsg := func(num int) string {
 		return "Hello From " + fmt.Sprint(num)
 	}
 
@@ -148,7 +148,7 @@ func TestManyToOne(t *testing.T) {
 			assert.NoError(t, init_err)
 
 			for i := range msgs_per_producer {
-				send_err := producer_mw.Send(m.Message{Body: GetExepctedMsg(i)})
+				send_err := producer_mw.Send(m.Message{Body: getExpectedMsg(i)})
 				assert.NoError(t, send_err)
 			}
 
@@ -160,7 +160,7 @@ func TestManyToOne(t *testing.T) {
 	expectedMsgs := make([]string, 0)
 	for i := range num_of_producers {
 		for range msgs_per_producer {
-			expectedMsgs = append(expectedMsgs, GetExepctedMsg(i))
+			expectedMsgs = append(expectedMsgs, getExpectedMsg(i))
 		}
 	}
 
