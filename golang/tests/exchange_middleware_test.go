@@ -18,6 +18,14 @@ func GetExchangeMiddleware(exchange string, keys []string) (m.Middleware, error)
 
 var w_opts = GetWaitOptions()
 
+func TestCanConnectExchange(t *testing.T) {
+	producer_mw, init_error := GetExchangeMiddleware("TestCanConnect", []string{"key1", "key2"})
+	assert.NoError(t, init_error)
+
+	close_error := producer_mw.Close()
+	assert.NoError(t, close_error)
+}
+
 func TestOneToOneExchange(t *testing.T) {
 
 	// Arrange

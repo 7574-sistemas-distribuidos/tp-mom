@@ -16,6 +16,15 @@ func GetQueueMiddleware(queue string) (m.Middleware, error) {
 	return s.NewRabbitmqQueueMiddleware(queue, GetCredentials())
 }
 
+func TestCanConnect(t *testing.T) {
+	producer_mw, init_error := GetQueueMiddleware("TestCanConnect")
+	assert.NoError(t, init_error)
+
+	close_error := producer_mw.Close()
+	assert.NoError(t, close_error)
+}
+
+// TODO: Send 3, 6, and 16 msgs in each case
 func TestOneToOne(t *testing.T) {
 
 	// Arrange
