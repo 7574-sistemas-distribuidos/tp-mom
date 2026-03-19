@@ -9,15 +9,15 @@ import (
 	"strconv"
 	"time"
 
-	r "github.com/7574-sistemas-distribuidos/tp-mom/golang/internal/middleware_rabbitmq"
+	m "github.com/7574-sistemas-distribuidos/tp-mom/golang/internal/middleware"
 )
 
-func GetCredentials() r.ConnectionConfiguration {
+func GetConnectionDetails() m.ConnSettings {
 	port, err := strconv.ParseInt(os.Getenv("RABBITMQ_PORT"), 10, 64)
 	if err != nil {
 		panic("Invalid Broker port number")
 	}
-	return r.ConnectionConfiguration{Hostname: os.Getenv("RABBITMQ_HOST"), Port: int(port)}
+	return m.ConnSettings{Hostname: os.Getenv("RABBITMQ_HOST"), Port: int(port)}
 }
 
 func GetWaitOptions() WaitOptions {

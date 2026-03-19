@@ -4,15 +4,13 @@ import (
 	"slices"
 	"testing"
 
+	f "github.com/7574-sistemas-distribuidos/tp-mom/golang/internal/factory"
 	m "github.com/7574-sistemas-distribuidos/tp-mom/golang/internal/middleware"
-	s "github.com/7574-sistemas-distribuidos/tp-mom/golang/internal/solution"
 	"github.com/stretchr/testify/assert"
 )
 
 func GetExchangeMiddleware(exchange string, keys []string) (m.Middleware, error) {
-	// TODO: Implementar la función constructora para
-	// devolver su implementación del middleware para Exchanges
-	return s.NewRabbitmqExchangeMiddleware(exchange, keys, GetCredentials())
+	return f.CreateExchangeMw(exchange, keys, GetConnectionDetails())
 }
 
 var w_opts = GetWaitOptions()

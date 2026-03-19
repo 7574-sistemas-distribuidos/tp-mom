@@ -3,15 +3,13 @@ package tests
 import (
 	"testing"
 
+	f "github.com/7574-sistemas-distribuidos/tp-mom/golang/internal/factory"
 	m "github.com/7574-sistemas-distribuidos/tp-mom/golang/internal/middleware"
-	s "github.com/7574-sistemas-distribuidos/tp-mom/golang/internal/solution"
 	"github.com/stretchr/testify/assert"
 )
 
 func GetQueueMiddleware(queue string) (m.Middleware, error) {
-	// TODO: Implementar la función constructora para
-	// devolver su implementación del middleware para Queues
-	return s.NewRabbitmqQueueMiddleware(queue, GetCredentials())
+	return f.CreateQueueMw(queue, GetConnectionDetails())
 }
 
 type QueueProdSettings struct {
