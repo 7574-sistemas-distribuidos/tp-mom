@@ -13,29 +13,29 @@ func GetExchangeMiddleware(exchange string, keys []string) (m.Middleware, error)
 	return f.CreateExchangeMw(exchange, keys, GetConnectionDetails())
 }
 
-var w_opts = GetWaitOptions()
+var waitOpts = GetWaitOptions()
 
-type ExcProdSettings struct {
+type ExchangeProducerOpts struct {
 	MessagesByRoutingKey map[string][]string
 }
 
-type ExcConsSettings struct {
+type ExchangeConsumerOpts struct {
 	RoutingKeys []string
 }
 
 const EXCHANGE_NAME = "test_exchange"
 
 func TestCanConnectExchange(t *testing.T) {
-	producer_mw, init_error := GetExchangeMiddleware("test_exchange", []string{"TestCanConnect"})
-	assert.NoError(t, init_error)
+	producerMiddleware, initErr := GetExchangeMiddleware("test_exchange", []string{"TestCanConnect"})
+	assert.NoError(t, initErr)
 
-	close_error := producer_mw.Close()
-	assert.NoError(t, close_error)
+	closeErr := producerMiddleware.Close()
+	assert.NoError(t, closeErr)
 }
 
 func TestOneToOneExchange(t *testing.T) {
 	// Arrange
-	prod_settings := []ExcProdSettings{
+	producersDeclaration := []ExchangeProducerOpts{
 		{MessagesByRoutingKey: map[string][]string{
 			"TestOneToOne": {
 				"Lionel Messi",
@@ -52,16 +52,16 @@ func TestOneToOneExchange(t *testing.T) {
 		}},
 	}
 
-	cons_settings := []ExcConsSettings{
+	consumersDeclaration := []ExchangeConsumerOpts{
 		{RoutingKeys: []string{"TestOneToOne"}},
 	}
 
-	DoTestExchange(t, prod_settings, cons_settings)
+	DoTestExchange(t, producersDeclaration, consumersDeclaration)
 }
 
 func TestOneToManyExchange(t *testing.T) {
 	// Arrange
-	prod_settings := []ExcProdSettings{
+	producersDeclaration := []ExchangeProducerOpts{
 		{MessagesByRoutingKey: map[string][]string{
 			"TestOneToMany": {
 				"Ferrari",
@@ -80,36 +80,36 @@ func TestOneToManyExchange(t *testing.T) {
 		}},
 	}
 
-	cons_settings := []ExcConsSettings{
+	consumersDeclaration := []ExchangeConsumerOpts{
 		{RoutingKeys: []string{"TestOneToOne"}},
 		{RoutingKeys: []string{"TestOneToOne"}},
 		{RoutingKeys: []string{"TestOneToOne"}},
 	}
 
-	DoTestExchange(t, prod_settings, cons_settings)
+	DoTestExchange(t, producersDeclaration, consumersDeclaration)
 }
 
 func TestManyToManyExchange(t *testing.T) {
 	// Arrange
-	prod_settings := []ExcProdSettings{
+	producersDeclaration := []ExchangeProducerOpts{
 		{MessagesByRoutingKey: map[string][]string{
 			"TestManyToMany_A": {"Audi", "Ferrari", "Mclaren"},
 			"TestManyToMany_B": {"Boeing", "Cesna", "Embraer", "Airbus", "Piper"},
 		}},
 	}
 
-	cons_settings := []ExcConsSettings{
+	consumersDeclaration := []ExchangeConsumerOpts{
 		{RoutingKeys: []string{"TestManyToMany_A"}},
 		{RoutingKeys: []string{"TestManyToMany_A", "TestManyToMany_B"}},
 		{RoutingKeys: []string{"TestManyToMany_B"}},
 	}
 
-	DoTestExchange(t, prod_settings, cons_settings)
+	DoTestExchange(t, producersDeclaration, consumersDeclaration)
 }
 
 func TestManyToOneExchange(t *testing.T) {
 	// Arrange
-	prod_settings := []ExcProdSettings{
+	producersDeclaration := []ExchangeProducerOpts{
 		{MessagesByRoutingKey: map[string][]string{
 			"TestManyToOne_A": {
 				"Buenos Aires",
@@ -147,11 +147,11 @@ func TestManyToOneExchange(t *testing.T) {
 		}},
 	}
 
-	cons_settings := []ExcConsSettings{
+	consumersDeclaration := []ExchangeConsumerOpts{
 		{RoutingKeys: []string{"TestManyToOne_A"}},
 	}
 
-	DoTestExchange(t, prod_settings, cons_settings)
+	DoTestExchange(t, producersDeclaration, consumersDeclaration)
 }
 
 /*
@@ -163,78 +163,80 @@ dependiendo de si todos los mensajes enviados fueron recibidos y procesados por 
 Se contempla también que los mensajes se duplicarán en los casos donde hay más de un consumidor por routing key
 esperando que la cantidad de veces que se procesa el mensaje sea igual a la cantidad de consumidores asociados a dicha key.
 */
-func DoTestExchange(t *testing.T, producers_settings []ExcProdSettings, consumer_settings []ExcConsSettings) {
-
+func DoTestExchange(
+	t *testing.T,
+	producersDeclaration []ExchangeProducerOpts,
+	consumersDeclaration []ExchangeConsumerOpts,
+) {
 	// Arrange
-	msgs_fan_in := make(chan string)
-	prod_by_key := make(map[string]m.Middleware)
-	n_cons_by_key := make(map[string]int)
-	for _, p_settings := range producers_settings {
-		for routing_key := range p_settings.MessagesByRoutingKey {
-			mw, err := GetExchangeMiddleware(EXCHANGE_NAME, []string{routing_key})
+	msgsFanIn := make(chan string)
+	producerByKey := make(map[string]m.Middleware)
+	numConsumersByKey := make(map[string]int)
+	for _, producerOpts := range producersDeclaration {
+		for routingKey := range producerOpts.MessagesByRoutingKey {
+			middleware, err := GetExchangeMiddleware(EXCHANGE_NAME, []string{routingKey})
 			assert.NoError(t, err)
-			prod_by_key[routing_key] = mw
-
-			n_cons_by_key[routing_key] = 0
+			producerByKey[routingKey] = middleware
+			numConsumersByKey[routingKey] = 0
 		}
 	}
 
 	consumers := make([]m.Middleware, 0)
-	for _, c_settings := range consumer_settings {
-		mw, err := GetExchangeMiddleware(EXCHANGE_NAME, c_settings.RoutingKeys)
+	for _, consumerOpts := range consumersDeclaration {
+		middleware, err := GetExchangeMiddleware(EXCHANGE_NAME, consumerOpts.RoutingKeys)
 		assert.NoError(t, err)
-		consumers = append(consumers, mw)
-		for _, key := range c_settings.RoutingKeys {
-			n_cons_by_key[key] += 1
+		consumers = append(consumers, middleware)
+		for _, routingKey := range consumerOpts.RoutingKeys {
+			numConsumersByKey[routingKey] += 1
 		}
 
-		go mw.StartConsuming(func(msg m.Message) { msgs_fan_in <- msg.Body })
+		go middleware.StartConsuming(func(msg m.Message) { msgsFanIn <- msg.Body })
 	}
 
 	// Act
-	for _, p_settings := range producers_settings {
-		for routing_key, msgs := range p_settings.MessagesByRoutingKey {
-			WaitForExchangeBindings(EXCHANGE_NAME, routing_key, n_cons_by_key[routing_key], w_opts)
-			for _, msg := range msgs {
-				prod_by_key[routing_key].Send(m.Message{Body: msg})
+	for _, producerOpts := range producersDeclaration {
+		for routingKey, messages := range producerOpts.MessagesByRoutingKey {
+			WaitForExchangeBindings(EXCHANGE_NAME, routingKey, numConsumersByKey[routingKey], waitOpts)
+			for _, msg := range messages {
+				producerByKey[routingKey].Send(m.Message{Body: msg})
 			}
 		}
 	}
 
-	expected_deliveries := make([]string, 0)
-	for _, p_settings := range producers_settings {
-		for key, msgs := range p_settings.MessagesByRoutingKey {
-			consumers_for_key := 0
-			for _, c_settings := range consumer_settings {
-				if slices.Contains(c_settings.RoutingKeys, key) {
-					consumers_for_key += 1
+	expectedDeliveries := make([]string, 0)
+	for _, producerOpts := range producersDeclaration {
+		for routingKey, msgs := range producerOpts.MessagesByRoutingKey {
+			numConsumersForKey := 0
+			for _, consumerOpts := range consumersDeclaration {
+				if slices.Contains(consumerOpts.RoutingKeys, routingKey) {
+					numConsumersForKey += 1
 				}
 			}
-			for range consumers_for_key {
-				expected_deliveries = append(expected_deliveries, msgs...)
+			for range numConsumersForKey {
+				expectedDeliveries = append(expectedDeliveries, msgs...)
 			}
 		}
 	}
 
-	comparison_results := make([]bool, 0)
+	comparisonResults := make([]bool, 0)
 
-	deliveries := len(expected_deliveries)
+	deliveries := len(expectedDeliveries)
 	for range deliveries {
-		Remove(expected_deliveries, <-msgs_fan_in) // Does nothing if not present
+		Remove(expectedDeliveries, <-msgsFanIn) // Does nothing if not present
 	}
-	close(msgs_fan_in)
+	close(msgsFanIn)
 
 	// Assert
-	assert.Empty(t, comparison_results)
+	assert.Empty(t, comparisonResults)
 
-	for _, p := range prod_by_key {
-		close_err := p.Close()
-		assert.NoError(t, close_err)
+	for _, producerMiddleware := range producerByKey {
+		closeErr := producerMiddleware.Close()
+		assert.NoError(t, closeErr)
 	}
 
-	for _, c := range consumers {
-		c.StopConsuming()
-		close_err := c.Close()
-		assert.NoError(t, close_err)
+	for _, consumerMiddleware := range consumers {
+		consumerMiddleware.StopConsuming()
+		closeErr := consumerMiddleware.Close()
+		assert.NoError(t, closeErr)
 	}
 }

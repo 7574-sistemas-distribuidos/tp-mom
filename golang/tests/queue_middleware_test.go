@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func GetQueueMiddleware(queue string) (m.Middleware, error) {
-	return f.CreateQueueMw(queue, GetConnectionDetails())
+func GetQueueMiddleware(queueName string) (m.Middleware, error) {
+	return f.CreateQueueMw(queueName, GetConnectionDetails())
 }
 
 type QueueProdSettings struct {
@@ -21,17 +21,17 @@ type QueueConsSettings struct {
 }
 
 func TestCanConnect(t *testing.T) {
-	producer_mw, init_error := GetQueueMiddleware("TestCanConnect")
-	assert.NoError(t, init_error)
+	producerMiddleware, initErr := GetQueueMiddleware("TestCanConnect")
+	assert.NoError(t, initErr)
 
-	close_error := producer_mw.Close()
-	assert.NoError(t, close_error)
+	closeErr := producerMiddleware.Close()
+	assert.NoError(t, closeErr)
 }
 
 func TestOneToOne(t *testing.T) {
 
 	// Arrange
-	p_settings := []QueueProdSettings{
+	producersDeclaration := []QueueProdSettings{
 		{MessagesByQueue: map[string][]string{
 			"TestOneToOne": {
 				"JavaScript",
@@ -53,17 +53,17 @@ func TestOneToOne(t *testing.T) {
 		}},
 	}
 
-	cons_settings := []QueueConsSettings{
+	consumersDeclaration := []QueueConsSettings{
 		{QueueName: "TestOneToOne"},
 	}
 
-	DoTestQueue(t, p_settings, cons_settings)
+	DoTestQueue(t, producersDeclaration, consumersDeclaration)
 }
 
 func TestOneToMany(t *testing.T) {
 
 	// Arrange
-	p_settings := []QueueProdSettings{
+	producersDeclaration := []QueueProdSettings{
 		{MessagesByQueue: map[string][]string{
 			"TestOneToMany": {
 				"Buenos Aires",
@@ -90,7 +90,7 @@ func TestOneToMany(t *testing.T) {
 		}},
 	}
 
-	cons_settings := []QueueConsSettings{
+	consumersDeclaration := []QueueConsSettings{
 		{QueueName: "TestOneToMany"},
 		{QueueName: "TestOneToMany"},
 		{QueueName: "TestOneToMany"},
@@ -98,13 +98,13 @@ func TestOneToMany(t *testing.T) {
 		{QueueName: "TestOneToMany"},
 	}
 
-	DoTestQueue(t, p_settings, cons_settings)
+	DoTestQueue(t, producersDeclaration, consumersDeclaration)
 }
 
 func TestManyToOne(t *testing.T) {
 
 	// Arrange
-	p_settings := []QueueProdSettings{
+	producersDeclaration := []QueueProdSettings{
 		{MessagesByQueue: map[string][]string{
 			"TestManyToOne": {"Buenos Aires", "Córdoba", "Rosario", "Mendoza", "San Miguel de Tucumán"},
 		}},
@@ -119,17 +119,17 @@ func TestManyToOne(t *testing.T) {
 		}},
 	}
 
-	cons_settings := []QueueConsSettings{
+	consumersDeclaration := []QueueConsSettings{
 		{QueueName: "TestManyToOne"},
 	}
 
-	DoTestQueue(t, p_settings, cons_settings)
+	DoTestQueue(t, producersDeclaration, consumersDeclaration)
 }
 
 func TestManyToMany(t *testing.T) {
 
 	// Arrange
-	p_settings := []QueueProdSettings{
+	producersDeclaration := []QueueProdSettings{
 		{MessagesByQueue: map[string][]string{
 			"TestManyToMany": {"Buenos Aires", "Córdoba", "Rosario", "Mendoza", "San Miguel de Tucumán"},
 		}},
@@ -144,14 +144,14 @@ func TestManyToMany(t *testing.T) {
 		}},
 	}
 
-	cons_settings := []QueueConsSettings{
+	consumersDeclaration := []QueueConsSettings{
 		{QueueName: "TestManyToMany"},
 		{QueueName: "TestManyToMany"},
 		{QueueName: "TestManyToMany"},
 		{QueueName: "TestManyToMany"},
 	}
 
-	DoTestQueue(t, p_settings, cons_settings)
+	DoTestQueue(t, producersDeclaration, consumersDeclaration)
 }
 
 /*
@@ -161,68 +161,68 @@ El segundo es la declaración de los consumidores y de qué cola estarán consum
 En base a estos parámetros se configura la topología y se determina si la ejecución fue exitosa o no
 dependiendo de si todos los mensajes enviados fueron recibidos y procesados por los consumidores exactamente una vez.
 */
-func DoTestQueue(t *testing.T, producers_settings []QueueProdSettings, consumer_settings []QueueConsSettings) {
+func DoTestQueue(t *testing.T, producersDeclaration []QueueProdSettings, consumersDeclaration []QueueConsSettings) {
 
 	// Arrange
-	msgs_fan_in := make(chan string)
-	prod_by_queue := make(map[string]m.Middleware)
-	n_cons_by_queue := make(map[string]int)
-	for _, p_settings := range producers_settings {
-		for q_name := range p_settings.MessagesByQueue {
-			mw, err := GetQueueMiddleware(q_name)
+	msgsFanIn := make(chan string)
+	producersByQueue := make(map[string]m.Middleware)
+	numConsumersByQueue := make(map[string]int)
+	for _, producerOpts := range producersDeclaration {
+		for queueName := range producerOpts.MessagesByQueue {
+			middleware, err := GetQueueMiddleware(queueName)
 			assert.NoError(t, err)
-			prod_by_queue[q_name] = mw
+			producersByQueue[queueName] = middleware
 
-			n_cons_by_queue[q_name] = 0
+			numConsumersByQueue[queueName] = 0
 		}
 	}
 
 	consumers := make([]m.Middleware, 0)
-	for _, c_settings := range consumer_settings {
-		mw, err := GetQueueMiddleware(c_settings.QueueName)
+	for _, consumerOpts := range consumersDeclaration {
+		middleware, err := GetQueueMiddleware(consumerOpts.QueueName)
 		assert.NoError(t, err)
-		consumers = append(consumers, mw)
-		n_cons_by_queue[c_settings.QueueName] += 1
+		consumers = append(consumers, middleware)
+		numConsumersByQueue[consumerOpts.QueueName] += 1
 
-		go mw.StartConsuming(func(msg m.Message) { msgs_fan_in <- msg.Body })
+		go middleware.StartConsuming(func(msg m.Message) { msgsFanIn <- msg.Body })
 	}
 
 	// Act
-	for _, p_settings := range producers_settings {
-		for q_name, msgs := range p_settings.MessagesByQueue {
-			for _, msg := range msgs {
-				prod_by_queue[q_name].Send(m.Message{Body: msg})
+	for _, producerOpts := range producersDeclaration {
+		for queueName, messages := range producerOpts.MessagesByQueue {
+			for _, msg := range messages {
+				producersByQueue[queueName].Send(m.Message{Body: msg})
 			}
 		}
 	}
 
-	expected_deliveries := make([]string, 0)
-	for _, p_settings := range producers_settings {
-		for _, msgs := range p_settings.MessagesByQueue {
-			expected_deliveries = append(expected_deliveries, msgs...)
+	expectedDeliveries := make([]string, 0)
+	for _, producerOpts := range producersDeclaration {
+		for _, messages := range producerOpts.MessagesByQueue {
+			expectedDeliveries = append(expectedDeliveries, messages...)
 		}
 	}
 
-	comparison_results := make([]bool, 0)
+	comparisonResults := make([]bool, 0)
 
-	deliveries := len(expected_deliveries)
+	deliveries := len(expectedDeliveries)
 
 	for range deliveries {
-		Remove(expected_deliveries, <-msgs_fan_in) // Does nothing if not present
+		Remove(expectedDeliveries, <-msgsFanIn) // Does nothing if not present
 	}
-	close(msgs_fan_in)
+	close(msgsFanIn)
 
 	// Assert
-	assert.Empty(t, comparison_results)
+	assert.Empty(t, comparisonResults)
 
-	for _, p := range prod_by_queue {
-		close_err := p.Close()
-		assert.NoError(t, close_err)
+	for _, producerMiddleware := range producersByQueue {
+		closeErr := producerMiddleware.Close()
+		assert.NoError(t, closeErr)
 	}
 
-	for _, c := range consumers {
-		c.StopConsuming()
-		close_err := c.Close()
-		assert.NoError(t, close_err)
+	for _, consumerMiddleware := range consumers {
+		consumerMiddleware.StopConsuming()
+		closeErr := consumerMiddleware.Close()
+		assert.NoError(t, closeErr)
 	}
 }
