@@ -18,6 +18,6 @@ Instalar los dependencias de la suite de pruebas:
 `pip install -r src/tests/requirements.txt`
 
 ### Golang
-Instalar una versión de Python superior a `1.24`.
+Instalar una versión de Golang superior a `1.24`.
 Instalar los dependencias de la suite de pruebas:
 `go mod download`
