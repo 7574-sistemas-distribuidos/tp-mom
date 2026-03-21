@@ -12,6 +12,10 @@ import (
 	m "github.com/7574-sistemas-distribuidos/tp-mom/golang/internal/middleware"
 )
 
+// -----------------------------------------------------------------------------
+// HELP FUNCTIONS
+// -----------------------------------------------------------------------------
+
 func GetConnectionDetails() m.ConnSettings {
 	port, err := strconv.ParseInt(os.Getenv("RABBITMQ_PORT"), 10, 64)
 	if err != nil {
@@ -63,18 +67,23 @@ type binding struct {
 	RoutingKey      string `json:"routing_key"`
 }
 
-/*
-Esperar a que todos los "bindings" esperados de las colas al exchange de prueba existan.
+func WaitForExchangeBindings(
+	exchangeName string,
+	key string,
+	expectedQueues int,
+	opts WaitOptions,
+) error {
+	/*
+	   Esperar a que todos los "bindings" esperados de las colas al exchange de prueba existan.
 
-ACLARACIÓN: Esta función sincroniza los "bindings" en un contexto en donde:
-- No podemos extender el middleware ni agregarle lógica
-- No podemos asumir la existencia de mecanismos de sincronización en el middleware
-- Agregar lógica adicional de comunicación entre componentes complejizaría los casos de prueba
+	   ACLARACIÓN: Esta función sincroniza los "bindings" en un contexto en donde:
+	   - No podemos extender el middleware ni agregarle lógica
+	   - No podemos asumir la existencia de mecanismos de sincronización en el middleware
+	   - Agregar lógica adicional de comunicación entre componentes complejizaría los casos de prueba
 
-Si se te presenta un caso que pensás que amerita una solución similar; evalua exhaustivamente que no haya mejores opciones;
-y recordá, este tipo de lógica debería estar en el middleware, que es el componente que abstrae la lógica de comunicación.
-*/
-func WaitForExchangeBindings(exchangeName string, key string, expectedQueues int, opts WaitOptions) error {
+	   Si se te presenta un caso que pensás que amerita una solución similar; evalua exhaustivamente que no haya mejores opciones;
+	   y recordá, este tipo de lógica debería estar en el middleware, que es el componente que abstrae la lógica de comunicación.
+	*/
 	deadline := time.Now().Add(opts.Timeout)
 	for time.Now().Before(deadline) {
 		bindings, err := getExchangeBindings(exchangeName, opts)

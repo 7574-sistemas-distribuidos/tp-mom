@@ -20,6 +20,9 @@ type QueueConsSettings struct {
 	QueueName string
 }
 
+// ----------------------------------------------------------------------------
+// GENERAL TESTS
+// ----------------------------------------------------------------------------
 func TestCanConnect(t *testing.T) {
 	producerMiddleware, initErr := GetQueueMiddleware("TestCanConnect")
 	assert.NoError(t, initErr)
@@ -28,6 +31,9 @@ func TestCanConnect(t *testing.T) {
 	assert.NoError(t, closeErr)
 }
 
+// ----------------------------------------------------------------------------
+// PRODUCER CONSUMER TESTS
+// ----------------------------------------------------------------------------
 func TestOneToOne(t *testing.T) {
 
 	// Arrange
@@ -154,14 +160,21 @@ func TestManyToMany(t *testing.T) {
 	DoTestQueue(t, producersDeclaration, consumersDeclaration)
 }
 
-/*
-El primer argumento de esta función es un arreglo de configuraciones para los productores,
-donde se declaran los mensajes que cada uno mandará a cada cola.
-El segundo es la declaración de los consumidores y de qué cola estarán consumiendo mensajes.
-En base a estos parámetros se configura la topología y se determina si la ejecución fue exitosa o no
-dependiendo de si todos los mensajes enviados fueron recibidos y procesados por los consumidores exactamente una vez.
-*/
-func DoTestQueue(t *testing.T, producersDeclaration []QueueProdSettings, consumersDeclaration []QueueConsSettings) {
+// ----------------------------------------------------------------------------
+// HELP FUNCTIONS
+// ----------------------------------------------------------------------------
+func DoTestQueue(
+	t *testing.T,
+	producersDeclaration []QueueProdSettings,
+	consumersDeclaration []QueueConsSettings,
+) {
+	/*
+	   El primer argumento de esta función es un arreglo de configuraciones para los productores,
+	   donde se declaran los mensajes que cada uno mandará a cada cola.
+	   El segundo es la declaración de los consumidores y de qué cola estarán consumiendo mensajes.
+	   En base a estos parámetros se configura la topología y se determina si la ejecución fue exitosa o no
+	   dependiendo de si todos los mensajes enviados fueron recibidos y procesados por los consumidores exactamente una vez.
+	*/
 
 	// Arrange
 	msgsFanIn := make(chan string)

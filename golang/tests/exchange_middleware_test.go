@@ -25,6 +25,9 @@ type ExchangeConsumerOpts struct {
 
 const EXCHANGE_NAME = "test_exchange"
 
+// ----------------------------------------------------------------------------
+// GENERAL TESTS
+// ----------------------------------------------------------------------------
 func TestCanConnectExchange(t *testing.T) {
 	producerMiddleware, initErr := GetExchangeMiddleware("test_exchange", []string{"TestCanConnect"})
 	assert.NoError(t, initErr)
@@ -33,6 +36,9 @@ func TestCanConnectExchange(t *testing.T) {
 	assert.NoError(t, closeErr)
 }
 
+// ----------------------------------------------------------------------------
+// DIRECT MESSAGING TESTS
+// ----------------------------------------------------------------------------
 func TestOneToOneExchange(t *testing.T) {
 	// Arrange
 	producersDeclaration := []ExchangeProducerOpts{
@@ -54,54 +60,6 @@ func TestOneToOneExchange(t *testing.T) {
 
 	consumersDeclaration := []ExchangeConsumerOpts{
 		{RoutingKeys: []string{"TestOneToOne"}},
-	}
-
-	DoTestExchange(t, producersDeclaration, consumersDeclaration)
-}
-
-func TestOneToManyExchange(t *testing.T) {
-	// Arrange
-	producersDeclaration := []ExchangeProducerOpts{
-		{MessagesByRoutingKey: map[string][]string{
-			"TestOneToMany": {
-				"Ferrari",
-				"Porsche",
-				"Lamborghini",
-				"Mercedes-Benz",
-				"BMW",
-				"Audi",
-				"Tesla",
-				"Toyota",
-				"Ford",
-				"Chevrolet",
-				"Aston Martin",
-				"Mclaren",
-			},
-		}},
-	}
-
-	consumersDeclaration := []ExchangeConsumerOpts{
-		{RoutingKeys: []string{"TestOneToOne"}},
-		{RoutingKeys: []string{"TestOneToOne"}},
-		{RoutingKeys: []string{"TestOneToOne"}},
-	}
-
-	DoTestExchange(t, producersDeclaration, consumersDeclaration)
-}
-
-func TestManyToManyExchange(t *testing.T) {
-	// Arrange
-	producersDeclaration := []ExchangeProducerOpts{
-		{MessagesByRoutingKey: map[string][]string{
-			"TestManyToMany_A": {"Audi", "Ferrari", "Mclaren"},
-			"TestManyToMany_B": {"Boeing", "Cesna", "Embraer", "Airbus", "Piper"},
-		}},
-	}
-
-	consumersDeclaration := []ExchangeConsumerOpts{
-		{RoutingKeys: []string{"TestManyToMany_A"}},
-		{RoutingKeys: []string{"TestManyToMany_A", "TestManyToMany_B"}},
-		{RoutingKeys: []string{"TestManyToMany_B"}},
 	}
 
 	DoTestExchange(t, producersDeclaration, consumersDeclaration)
@@ -154,20 +112,75 @@ func TestManyToOneExchange(t *testing.T) {
 	DoTestExchange(t, producersDeclaration, consumersDeclaration)
 }
 
-/*
-El primer argumento de esta función es un arreglo de configuraciones para los productores,
-donde se declaran los mensajes que cada uno mandará al exchange usando cada routing key.
-El segundo es la declaración de los consumidores y con qué topics se conectará al exchange.
-En base a estos parámetros se configura la topología y se determina si la ejecución fue exitosa o no
-dependiendo de si todos los mensajes enviados fueron recibidos y procesados por los consumidores.
-Se contempla también que los mensajes se duplicarán en los casos donde hay más de un consumidor por routing key
-esperando que la cantidad de veces que se procesa el mensaje sea igual a la cantidad de consumidores asociados a dicha key.
-*/
+// ----------------------------------------------------------------------------
+// BROADCAST MESSAGING TESTS
+// ----------------------------------------------------------------------------
+func TestOneToManyExchange(t *testing.T) {
+	// Arrange
+	producersDeclaration := []ExchangeProducerOpts{
+		{MessagesByRoutingKey: map[string][]string{
+			"TestOneToMany": {
+				"Ferrari",
+				"Porsche",
+				"Lamborghini",
+				"Mercedes-Benz",
+				"BMW",
+				"Audi",
+				"Tesla",
+				"Toyota",
+				"Ford",
+				"Chevrolet",
+				"Aston Martin",
+				"Mclaren",
+			},
+		}},
+	}
+
+	consumersDeclaration := []ExchangeConsumerOpts{
+		{RoutingKeys: []string{"TestOneToOne"}},
+		{RoutingKeys: []string{"TestOneToOne"}},
+		{RoutingKeys: []string{"TestOneToOne"}},
+	}
+
+	DoTestExchange(t, producersDeclaration, consumersDeclaration)
+}
+
+func TestManyToManyExchange(t *testing.T) {
+	// Arrange
+	producersDeclaration := []ExchangeProducerOpts{
+		{MessagesByRoutingKey: map[string][]string{
+			"TestManyToMany_A": {"Audi", "Ferrari", "Mclaren"},
+			"TestManyToMany_B": {"Boeing", "Cesna", "Embraer", "Airbus", "Piper"},
+		}},
+	}
+
+	consumersDeclaration := []ExchangeConsumerOpts{
+		{RoutingKeys: []string{"TestManyToMany_A"}},
+		{RoutingKeys: []string{"TestManyToMany_A", "TestManyToMany_B"}},
+		{RoutingKeys: []string{"TestManyToMany_B"}},
+	}
+
+	DoTestExchange(t, producersDeclaration, consumersDeclaration)
+}
+
+// ----------------------------------------------------------------------------
+// HELP FUNCTIONS
+// ----------------------------------------------------------------------------
 func DoTestExchange(
 	t *testing.T,
 	producersDeclaration []ExchangeProducerOpts,
 	consumersDeclaration []ExchangeConsumerOpts,
 ) {
+	/*
+	   El primer argumento de esta función es un arreglo de configuraciones para los productores,
+	   donde se declaran los mensajes que cada uno mandará al exchange usando cada routing key.
+	   El segundo es la declaración de los consumidores y con qué topics se conectará al exchange.
+	   En base a estos parámetros se configura la topología y se determina si la ejecución fue exitosa o no
+	   dependiendo de si todos los mensajes enviados fueron recibidos y procesados por los consumidores.
+	   Se contempla también que los mensajes se duplicarán en los casos donde hay más de un consumidor por routing key
+	   esperando que la cantidad de veces que se procesa el mensaje sea igual a la cantidad de consumidores asociados a dicha key.
+	*/
+
 	// Arrange
 	msgsFanIn := make(chan string)
 	producerByKey := make(map[string]m.Middleware)
