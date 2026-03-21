@@ -154,6 +154,13 @@ func TestManyToMany(t *testing.T) {
 	DoTestQueue(t, p_settings, cons_settings)
 }
 
+/*
+El primer argumento de esta función es un arreglo de configuraciones para los productores,
+donde se declaran los mensajes que cada uno mandará a cada cola.
+El segundo es la declaración de los consumidores y de qué cola estarán consumiendo mensajes.
+En base a estos parámetros se configura la topología y se determina si la ejecución fue exitosa o no
+dependiendo de si todos los mensajes enviados fueron recibidos y procesados por los consumidores exactamente una vez.
+*/
 func DoTestQueue(t *testing.T, producers_settings []QueueProdSettings, consumer_settings []QueueConsSettings) {
 
 	// Arrange

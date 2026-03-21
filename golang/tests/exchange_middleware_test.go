@@ -154,6 +154,15 @@ func TestManyToOneExchange(t *testing.T) {
 	DoTestExchange(t, prod_settings, cons_settings)
 }
 
+/*
+El primer argumento de esta función es un arreglo de configuraciones para los productores,
+donde se declaran los mensajes que cada uno mandará al exchange usando cada routing key.
+El segundo es la declaración de los consumidores y con qué topics se conectará al exchange.
+En base a estos parámetros se configura la topología y se determina si la ejecución fue exitosa o no
+dependiendo de si todos los mensajes enviados fueron recibidos y procesados por los consumidores.
+Se contempla también que los mensajes se duplicarán en los casos donde hay más de un consumidor por routing key
+esperando que la cantidad de veces que se procesa el mensaje sea igual a la cantidad de consumidores asociados a dicha key.
+*/
 func DoTestExchange(t *testing.T, producers_settings []ExcProdSettings, consumer_settings []ExcConsSettings) {
 
 	// Arrange
