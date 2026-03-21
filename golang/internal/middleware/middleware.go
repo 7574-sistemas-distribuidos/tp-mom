@@ -1,5 +1,13 @@
 package middleware
 
+import "errors"
+
+var (
+	ErrMessageMiddlewareMessage      = errors.New("message middleware: message error")
+	ErrMessageMiddlewareDisconnected = errors.New("message middleware: disconnected")
+	ErrMessageMiddlewareClose        = errors.New("message middleware: close error")
+)
+
 type Message struct {
 	Body string
 }
@@ -10,8 +18,26 @@ type ConnSettings struct {
 }
 
 type Middleware interface {
-	StartConsuming(cb func(msg Message)) (err error)
+
+	//Comienza a escuchar a la cola/exchange e invoca a callbackFunc tras
+	//cada mensaje de datos o de control con el cuerpo del mensaje.
+	//callbackFunc tiene como parámetro:
+	// msg - El struct tal y como lo recibe el método Send.
+	//Si se pierde la conexión con el middleware devuelve ErrMessageMiddlewareDisconnected.
+	//Si ocurre un error interno que no puede resolverse devuelve ErrMessageMiddlewareMessage.
+	StartConsuming(callbackFunc func(msg Message)) (err error)
+
+	//Si se estaba consumiendo desde la cola/exchange, se detiene la escucha. Si
+	//no se estaba consumiendo de la cola/exchange, no tiene efecto, ni levanta
+	//Si se pierde la conexión con el middleware devuelve ErrMessageMiddlewareDisconnected.
 	StopConsuming()
+
+	//Envía un mensaje a la cola o a los tópicos con el que se inicializó el exchange.
+	//Si se pierde la conexión con el middleware devuelve ErrMessageMiddlewareDisconnected.
+	//Si ocurre un error interno que no puede resolverse devuelve ErrMessageMiddlewareMessage.
 	Send(msg Message) (err error)
+
+	//Se desconecta de la cola o exchange al que estaba conectado.
+	//Si ocurre un error interno que no puede resolverse devuelve ErrMessageMiddlewareClose.
 	Close() error
 }
