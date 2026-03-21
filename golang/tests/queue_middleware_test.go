@@ -9,7 +9,7 @@ import (
 )
 
 func GetQueueMiddleware(queueName string) (m.Middleware, error) {
-	return f.CreateQueueMw(queueName, GetConnectionDetails())
+	return f.CreateQueueMiddleware(queueName, GetConnectionDetails())
 }
 
 type QueueProdSettings struct {

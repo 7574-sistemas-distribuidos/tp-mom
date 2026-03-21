@@ -10,7 +10,7 @@ import (
 )
 
 func GetExchangeMiddleware(exchange string, keys []string) (m.Middleware, error) {
-	return f.CreateExchangeMw(exchange, keys, GetConnectionDetails())
+	return f.CreateExchangeMiddleware(exchange, keys, GetConnectionDetails())
 }
 
 var waitOpts = GetWaitOptions()
