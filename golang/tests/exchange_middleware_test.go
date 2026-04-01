@@ -253,8 +253,9 @@ func DoTestExchange(
 	}
 
 	for _, consumerMiddleware := range consumers {
-		consumerMiddleware.StopConsuming()
+		stopErr := consumerMiddleware.StopConsuming()
 		closeErr := consumerMiddleware.Close()
+		assert.NoError(t, stopErr)
 		assert.NoError(t, closeErr)
 	}
 }
