@@ -27,17 +27,17 @@ type Middleware interface {
 	// nack - Una función que hace NACK del mensaje recibido.
 	//Si se pierde la conexión con el middleware devuelve ErrMessageMiddlewareDisconnected.
 	//Si ocurre un error interno que no puede resolverse devuelve ErrMessageMiddlewareMessage.
-	StartConsuming(callbackFunc func(msg Message, ack func(), nack func())) (err error)
+	StartConsuming(callbackFunc func(msg Message, ack func(), nack func())) error
 
 	//Si se estaba consumiendo desde la cola/exchange, se detiene la escucha. Si
 	//no se estaba consumiendo de la cola/exchange, no tiene efecto, ni levanta
 	//Si se pierde la conexión con el middleware devuelve ErrMessageMiddlewareDisconnected.
-	StopConsuming()
+	StopConsuming() error
 
 	//Envía un mensaje a la cola o a los tópicos con el que se inicializó el exchange.
 	//Si se pierde la conexión con el middleware devuelve ErrMessageMiddlewareDisconnected.
 	//Si ocurre un error interno que no puede resolverse devuelve ErrMessageMiddlewareMessage.
-	Send(msg Message) (err error)
+	Send(msg Message) error
 
 	//Se desconecta de la cola o exchange al que estaba conectado.
 	//Si ocurre un error interno que no puede resolverse devuelve ErrMessageMiddlewareClose.
