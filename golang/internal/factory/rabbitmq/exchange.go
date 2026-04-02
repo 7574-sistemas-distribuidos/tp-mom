@@ -66,51 +66,16 @@ func (e *exchangeMiddleware) Send(msg m.Message) error {
 func (e *exchangeMiddleware) StartConsuming(
 	callbackFunc func(msg m.Message, ack func(), nack func()),
 ) error {
-	q, err := e.channel.QueueDeclare(
-		"",
-		false,
-		true,
-		true,
-		false,
-		nil,
-	)
+	queue, err := e.declareQueue()
 	if err != nil {
-		return m.ErrMessageMiddlewareMessage
+		return err
 	}
 
-	for _, key := range e.routingKeys {
-		err = e.channel.QueueBind(
-			q.Name,
-			key,
-			e.exchange,
-			false,
-			nil,
-		)
-		if err != nil {
-			return m.ErrMessageMiddlewareMessage
-		}
+	if err := e.bindQueueToKeys(queue); err != nil {
+		return err
 	}
 
-	msgs, err := e.channel.Consume(
-		q.Name,
-		"",
-		false,
-		true,
-		false,
-		false,
-		nil,
-	)
-	if err != nil {
-		return m.ErrMessageMiddlewareMessage
-	}
-
-	go func() {
-		for d := range msgs {
-			callbackFunc(m.Message{Body: string(d.Body)}, func() { d.Ack(false) }, func() { d.Nack(false, true) })
-		}
-	}()
-
-	return nil
+	return e.consumeMessages(queue, callbackFunc)
 }
 
 func (e *exchangeMiddleware) StopConsuming() {}
@@ -125,6 +90,66 @@ func (e *exchangeMiddleware) Close() error {
 	if err != nil {
 		return m.ErrMessageMiddlewareClose
 	}
+
+	return nil
+}
+
+func (e *exchangeMiddleware) declareQueue() (amqp.Queue, error) {
+	q, err := e.channel.QueueDeclare(
+		"",
+		false,
+		true,
+		true,
+		false,
+		nil,
+	)
+	if err != nil {
+		return amqp.Queue{}, m.ErrMessageMiddlewareMessage
+	}
+	return q, nil
+}
+
+func (e *exchangeMiddleware) bindQueueToKeys(queue amqp.Queue) error {
+	for _, key := range e.routingKeys {
+		if err := e.channel.QueueBind(
+			queue.Name,
+			key,
+			e.exchange,
+			false,
+			nil,
+		); err != nil {
+			return m.ErrMessageMiddlewareMessage
+		}
+	}
+	return nil
+}
+
+func (e *exchangeMiddleware) consumeMessages(
+	queue amqp.Queue,
+	callbackFunc func(msg m.Message, ack func(), nack func()),
+) error {
+	msgs, err := e.channel.Consume(
+		queue.Name,
+		"",
+		false,
+		true,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return m.ErrMessageMiddlewareMessage
+	}
+
+	go func() {
+		for d := range msgs {
+			callbackFunc(
+				m.Message{Body: string(d.Body)},
+				func() { d.Ack(false) },
+				func() { d.Nack(false, true) },
+			)
+		}
+	}()
 
 	return nil
 }
