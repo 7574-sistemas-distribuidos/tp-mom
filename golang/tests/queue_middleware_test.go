@@ -35,7 +35,6 @@ func TestCanConnect(t *testing.T) {
 // PRODUCER CONSUMER TESTS
 // ----------------------------------------------------------------------------
 func TestOneToOne(t *testing.T) {
-	t.Skip("Skipping while implementing queue")
 	// Arrange
 	producersDeclaration := []QueueProdSettings{
 		{MessagesByQueue: map[string][]string{
