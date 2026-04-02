@@ -24,7 +24,6 @@ type QueueConsSettings struct {
 // GENERAL TESTS
 // ----------------------------------------------------------------------------
 func TestCanConnect(t *testing.T) {
-	t.Skip("Skipping while implementing queue")
 	producerMiddleware, initErr := GetQueueMiddleware("TestCanConnect")
 	assert.NoError(t, initErr)
 
