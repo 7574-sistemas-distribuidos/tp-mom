@@ -13,5 +13,9 @@ func CreateQueueMiddleware(queueName string, connectionSettings m.ConnSettings) 
 }
 
 func CreateExchangeMiddleware(exchange string, keys []string, connectionSettings m.ConnSettings) (m.Middleware, error) {
-	return nil, nil
+	return r.NewExchangeMiddleware(
+		exchange,
+		keys,
+		connectionSettings,
+	)
 }

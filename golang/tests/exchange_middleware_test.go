@@ -29,7 +29,6 @@ const EXCHANGE_NAME = "test_exchange"
 // GENERAL TESTS
 // ----------------------------------------------------------------------------
 func TestCanConnectExchange(t *testing.T) {
-	t.Skip("Skipping while implementing exchange")
 	producerMiddleware, initErr := GetExchangeMiddleware("test_exchange", []string{"TestCanConnect"})
 	assert.NoError(t, initErr)
 
