@@ -40,7 +40,6 @@ func TestCanConnectExchange(t *testing.T) {
 // DIRECT MESSAGING TESTS
 // ----------------------------------------------------------------------------
 func TestOneToOneExchange(t *testing.T) {
-	t.Skip("Skipping while implementing exchange")
 	// Arrange
 	producersDeclaration := []ExchangeProducerOpts{
 		{MessagesByRoutingKey: map[string][]string{
