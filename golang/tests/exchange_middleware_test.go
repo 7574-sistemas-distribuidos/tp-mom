@@ -66,7 +66,6 @@ func TestOneToOneExchange(t *testing.T) {
 }
 
 func TestManyToOneExchange(t *testing.T) {
-	t.Skip("Skipping while implementing exchange")
 	// Arrange
 	producersDeclaration := []ExchangeProducerOpts{
 		{MessagesByRoutingKey: map[string][]string{
@@ -117,7 +116,6 @@ func TestManyToOneExchange(t *testing.T) {
 // BROADCAST MESSAGING TESTS
 // ----------------------------------------------------------------------------
 func TestOneToManyExchange(t *testing.T) {
-	t.Skip("Skipping while implementing exchange")
 	// Arrange
 	producersDeclaration := []ExchangeProducerOpts{
 		{MessagesByRoutingKey: map[string][]string{
@@ -148,7 +146,6 @@ func TestOneToManyExchange(t *testing.T) {
 }
 
 func TestManyToManyExchange(t *testing.T) {
-	t.Skip("Skipping while implementing exchange")
 	// Arrange
 	producersDeclaration := []ExchangeProducerOpts{
 		{MessagesByRoutingKey: map[string][]string{

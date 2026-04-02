@@ -10,6 +10,7 @@ type exchangeMiddleware struct {
 	channel     *amqp.Channel
 	exchange    string
 	routingKeys []string
+	stopCh      chan struct{}
 }
 
 func NewExchangeMiddleware(
@@ -78,7 +79,11 @@ func (e *exchangeMiddleware) StartConsuming(
 	return e.consumeMessages(queue, callbackFunc)
 }
 
-func (e *exchangeMiddleware) StopConsuming() {}
+func (e *exchangeMiddleware) StopConsuming() {
+	if e.stopCh != nil {
+		close(e.stopCh)
+	}
+}
 
 func (e *exchangeMiddleware) Close() error {
 	err := e.channel.Close()
@@ -141,13 +146,23 @@ func (e *exchangeMiddleware) consumeMessages(
 		return m.ErrMessageMiddlewareMessage
 	}
 
+	e.stopCh = make(chan struct{})
+
 	go func() {
-		for d := range msgs {
-			callbackFunc(
-				m.Message{Body: string(d.Body)},
-				func() { d.Ack(false) },
-				func() { d.Nack(false, true) },
-			)
+		for {
+			select {
+			case d, ok := <-msgs:
+				if !ok {
+					return
+				}
+				callbackFunc(
+					m.Message{Body: string(d.Body)},
+					func() { d.Ack(false) },
+					func() { d.Nack(false, true) },
+				)
+			case <-e.stopCh:
+				return
+			}
 		}
 	}()
 
