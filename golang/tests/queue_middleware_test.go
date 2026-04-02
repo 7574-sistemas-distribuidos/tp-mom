@@ -66,7 +66,6 @@ func TestOneToOne(t *testing.T) {
 }
 
 func TestOneToMany(t *testing.T) {
-	t.Skip("Skipping while implementing queue")
 	// Arrange
 	producersDeclaration := []QueueProdSettings{
 		{MessagesByQueue: map[string][]string{
@@ -107,7 +106,6 @@ func TestOneToMany(t *testing.T) {
 }
 
 func TestManyToOne(t *testing.T) {
-	t.Skip("Skipping while implementing queue")
 	// Arrange
 	producersDeclaration := []QueueProdSettings{
 		{MessagesByQueue: map[string][]string{
@@ -132,7 +130,6 @@ func TestManyToOne(t *testing.T) {
 }
 
 func TestManyToMany(t *testing.T) {
-	t.Skip("Skipping while implementing queue")
 	// Arrange
 	producersDeclaration := []QueueProdSettings{
 		{MessagesByQueue: map[string][]string{
