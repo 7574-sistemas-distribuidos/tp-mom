@@ -9,5 +9,4 @@ COPY tests ./tests
 
 RUN go mod download
 
-
-ENTRYPOINT ["go", "test", "-v", "./...", "-count=1"]
+ENTRYPOINT ["go", "test", "-v", "./...", "-count=1", "-timeout=30s"]
