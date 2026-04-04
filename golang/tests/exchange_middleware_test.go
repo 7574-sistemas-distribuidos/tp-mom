@@ -137,9 +137,9 @@ func TestOneToManyExchange(t *testing.T) {
 	}
 
 	consumersDeclaration := []ExchangeConsumerOpts{
-		{RoutingKeys: []string{"TestOneToOne"}},
-		{RoutingKeys: []string{"TestOneToOne"}},
-		{RoutingKeys: []string{"TestOneToOne"}},
+		{RoutingKeys: []string{"TestOneToMany"}},
+		{RoutingKeys: []string{"TestOneToMany"}},
+		{RoutingKeys: []string{"TestOneToMany"}},
 	}
 
 	DoTestExchange(t, producersDeclaration, consumersDeclaration)
