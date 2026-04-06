@@ -11,7 +11,7 @@ type queueMiddleware struct {
 	queueName string
 
 	deliveries <-chan amqp.Delivery
-	done       chan bool
+	done       chan struct{}
 }
 
 func (q *queueMiddleware) Send(msg m.Message) error {
@@ -49,7 +49,7 @@ func (q *queueMiddleware) StartConsuming(
 	}
 
 	q.deliveries = msgs
-	q.done = make(chan bool)
+	q.done = make(chan struct{})
 
 	go q.consumeLoop(callbackFunc)
 
@@ -58,7 +58,7 @@ func (q *queueMiddleware) StartConsuming(
 
 func (q *queueMiddleware) StopConsuming() {
 	if q.done != nil {
-		q.done <- true
+		close(q.done)
 	}
 }
 
@@ -95,6 +95,8 @@ func NewQueueMiddleware(queueName string, settings m.ConnSettings) (m.Middleware
 		nil,
 	)
 	if err != nil {
+		_ = ch.Close()
+		_ = conn.Close()
 		return nil, m.ErrMessageMiddlewareMessage
 	}
 
@@ -135,11 +137,11 @@ func (q *queueMiddleware) handleDelivery(
 	}
 
 	ack := func() {
-		d.Ack(false)
+		_ = d.Ack(false)
 	}
 
 	nack := func() {
-		d.Nack(false, true)
+		_ = d.Nack(false, true)
 	}
 
 	callbackFunc(message, ack, nack)

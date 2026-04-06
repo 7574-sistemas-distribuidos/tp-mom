@@ -21,6 +21,7 @@ func connect(settings m.ConnSettings) (*amqp.Connection, *amqp.Channel, error) {
 
 	ch, err := conn.Channel()
 	if err != nil {
+		_ = conn.Close()
 		return nil, nil, m.ErrMessageMiddlewareDisconnected
 	}
 

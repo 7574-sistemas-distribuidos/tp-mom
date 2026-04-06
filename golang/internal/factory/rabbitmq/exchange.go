@@ -34,6 +34,8 @@ func NewExchangeMiddleware(
 	)
 
 	if err != nil {
+		_ = ch.Close()
+		_ = conn.Close()
 		return nil, m.ErrMessageMiddlewareMessage
 	}
 
@@ -157,8 +159,8 @@ func (e *exchangeMiddleware) consumeMessages(
 				}
 				callbackFunc(
 					m.Message{Body: string(d.Body)},
-					func() { d.Ack(false) },
-					func() { d.Nack(false, true) },
+					func() { _ = d.Ack(false) },
+					func() { _ = d.Nack(false, true) },
 				)
 			case <-e.stopCh:
 				return
