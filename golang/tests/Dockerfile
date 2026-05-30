@@ -4,9 +4,10 @@ WORKDIR /golang
 
 COPY go.mod .
 COPY go.sum .
-COPY internal ./internal
-COPY tests ./tests
 
 RUN go mod download
+
+COPY internal ./internal
+COPY tests ./tests
 
 ENTRYPOINT ["go", "test", "-v", "./...", "-count=1", "-timeout=30s"]
