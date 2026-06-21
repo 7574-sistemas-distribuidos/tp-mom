@@ -19,3 +19,11 @@ down:
 logs:
 	docker compose -f docker-compose.yaml logs
 .PHONY: logs
+
+test:
+	COMPOSE_HTTP_TIMEOUT=300 docker compose -f docker-compose.yaml up --build --remove-orphans --detach
+	docker compose -f docker-compose.yaml logs --follow go-tests; \
+	TEST_EXIT_CODE=$$(docker inspect go_tests --format='{{.State.ExitCode}}'); \
+	docker compose -f docker-compose.yaml stop -t 1 && docker compose -f docker-compose.yaml down; \
+	exit $$TEST_EXIT_CODE
+.PHONY: test
