@@ -1,45 +1,73 @@
 package middleware
 
-import "errors"
-
-var (
-	ErrMessageMiddlewareMessage      = errors.New("message middleware: message error")
-	ErrMessageMiddlewareDisconnected = errors.New("message middleware: disconnected")
-	ErrMessageMiddlewareClose        = errors.New("message middleware: close error")
+import (
+	"context"
+	"errors"
 )
 
-type Message struct {
-	Body string
-}
+var (
+	ErrMessage      = errors.New("message middleware: message error")
+	ErrDisconnected = errors.New("message middleware: disconnected")
+	ErrClosed       = errors.New("message middleware: close error")
+)
 
 type ConnSettings struct {
 	Hostname string
 	Port     int
 }
 
-type Middleware interface {
+type Connection interface {
+	Producer(queue string) (Producer, error)
+	Consumer(queue string) (Consumer, error)
+	Publisher(topic string) (Publisher, error)
+	Subscriber(queue string) (Subscriber, error)
+	Close() error
+}
 
-	//Comienza a escuchar a la cola/exchange e invoca a callbackFunc tras
-	//cada mensaje de datos o de control con el cuerpo del mensaje.
-	//callbackFunc tiene como parámetro:
-	// msg - El struct tal y como lo recibe el método Send.
-	// ack - Una función que hace ACK del mensaje recibido.
-	// nack - Una función que hace NACK del mensaje recibido.
-	//Si se pierde la conexión con el middleware devuelve ErrMessageMiddlewareDisconnected.
-	//Si ocurre un error interno que no puede resolverse devuelve ErrMessageMiddlewareMessage.
-	StartConsuming(callbackFunc func(msg Message, ack func(), nack func())) error
+type Message struct {
+	Body []byte
+	Ack  func() error
+	Nack func() error
+}
 
-	//Si se estaba consumiendo desde la cola/exchange, se detiene la escucha. Si
-	//no se estaba consumiendo de la cola/exchange, no tiene efecto, ni levanta
-	//Si se pierde la conexión con el middleware devuelve ErrMessageMiddlewareDisconnected.
-	StopConsuming() error
+type Producer interface {
+	// Se envía un mensaje a la cola
+	Send(ctx context.Context, msg Message) error
 
-	//Envía un mensaje a la cola o a los tópicos con el que se inicializó el exchange.
-	//Si se pierde la conexión con el middleware devuelve ErrMessageMiddlewareDisconnected.
-	//Si ocurre un error interno que no puede resolverse devuelve ErrMessageMiddlewareMessage.
-	Send(msg Message) error
+	// Se desconecta del MOM al que estaba conectado.
+	// Si ocurre un error interno que no puede resolverse devuelve ErrClosed.
+	Close() error
+}
 
-	//Se desconecta de la cola o exchange al que estaba conectado.
-	//Si ocurre un error interno que no puede resolverse devuelve ErrMessageMiddlewareClose.
+type Consumer interface {
+	// Se bloquea y consume mensajes de la queue o topic establecido
+	Consume(ctx context.Context, msgs chan<- Message) error
+
+	// Deja de consumir
+	StopConsuming()
+
+	// Se desconecta del MOM al que estaba conectado.
+	// Si ocurre un error interno que no puede resolverse devuelve ErrClosed.
+	Close() error
+}
+
+type Publisher interface {
+	// Se publica un mensaje al topic
+	Publish(ctx context.Context, msg Message) error
+
+	// Se desconecta del Mom al que etaba conectado.
+	// Si ocurre un error interno que no puede resolverse devuelve ErrClosed.
+	Close() error
+}
+
+type Subscriber interface {
+	// Se bloquea y consume mensajes de la queue o topic establecido
+	Consume(ctx context.Context, msgs chan<- Message) error
+
+	// Deja de consumir
+	StopConsuming()
+
+	// Se desconecta del Mom al que etaba conectado.
+	// Si ocurre un error interno que no puede resolverse devuelve ErrClosed.
 	Close() error
 }
