@@ -1,45 +1,77 @@
 package middleware
 
-import "errors"
-
-var (
-	ErrMessageMiddlewareMessage      = errors.New("message middleware: message error")
-	ErrMessageMiddlewareDisconnected = errors.New("message middleware: disconnected")
-	ErrMessageMiddlewareClose        = errors.New("message middleware: close error")
+import (
+	"context"
+	"errors"
 )
 
-type Message struct {
-	Body string
-}
+var (
+	ErrMessage      = errors.New("message middleware: message error")
+	ErrDisconnected = errors.New("message middleware: disconnected")
+	ErrClosed       = errors.New("message middleware: close error")
+)
 
 type ConnSettings struct {
 	Hostname string
 	Port     int
 }
 
-type Middleware interface {
+type Connection interface {
+	Producer(queue string) (Producer, error)
+	Consumer(queue string) (Consumer, error)
+	Publisher(topic string) (Publisher, error)
+	Subscriber(queue string) (Subscriber, error)
+	Close() error
+}
 
-	//Comienza a escuchar a la cola/exchange e invoca a callbackFunc tras
-	//cada mensaje de datos o de control con el cuerpo del mensaje.
-	//callbackFunc tiene como parámetro:
-	// msg - El struct tal y como lo recibe el método Send.
-	// ack - Una función que hace ACK del mensaje recibido.
-	// nack - Una función que hace NACK del mensaje recibido.
-	//Si se pierde la conexión con el middleware devuelve ErrMessageMiddlewareDisconnected.
-	//Si ocurre un error interno que no puede resolverse devuelve ErrMessageMiddlewareMessage.
-	StartConsuming(callbackFunc func(msg Message, ack func(), nack func())) error
+type Message struct {
+	Body []byte
+	Ack  func() error
+	Nack func() error
+}
 
-	//Si se estaba consumiendo desde la cola/exchange, se detiene la escucha. Si
-	//no se estaba consumiendo de la cola/exchange, no tiene efecto, ni levanta
-	//Si se pierde la conexión con el middleware devuelve ErrMessageMiddlewareDisconnected.
-	StopConsuming() error
+type Producer interface {
+	// Se bloquea y hasta publicar un mensaje a la cola o el contexto sea cancelado.
+	// Si ocurre un error interno que no puede resolverse devuelve ErrClosed.
+	Send(ctx context.Context, msg Message) error
 
-	//Envía un mensaje a la cola o a los tópicos con el que se inicializó el exchange.
-	//Si se pierde la conexión con el middleware devuelve ErrMessageMiddlewareDisconnected.
-	//Si ocurre un error interno que no puede resolverse devuelve ErrMessageMiddlewareMessage.
-	Send(msg Message) error
+	// Se desconecta del MOM al que estaba conectado.
+	// Si ocurre un error interno que no puede resolverse devuelve ErrClosed.
+	Close() error
+}
 
-	//Se desconecta de la cola o exchange al que estaba conectado.
-	//Si ocurre un error interno que no puede resolverse devuelve ErrMessageMiddlewareClose.
+type Consumer interface {
+	// Se bloquea y consume mensajes de la queue hasta que el contexto no sea cancelado u ocurra un error.
+	// Si ocurre un error interno que no puede resolverse devuelve ErrClosed.
+	Consume(ctx context.Context, msgs chan<- Message) error
+
+	// Cancela el contexto del método Consume, desbloqueando el llamado
+	StopConsuming()
+
+	// Se desconecta del MOM al que estaba conectado.
+	// Si ocurre un error interno que no puede resolverse devuelve ErrClosed.
+	Close() error
+}
+
+type Publisher interface {
+	// Se bloquea y hasta publicar un mensaje al topic o el contexto sea cancelado.
+	// Si ocurre un error interno que no puede resolverse devuelve ErrClosed.
+	Publish(ctx context.Context, msg Message) error
+
+	// Se desconecta del MOM al que etaba conectado.
+	// Si ocurre un error interno que no puede resolverse devuelve ErrClosed.
+	Close() error
+}
+
+type Subscriber interface {
+	// Se bloquea y consume mensajes del topic hasta que el contexto no sea cancelado u ocurra un error.
+	// Si ocurre un error interno que no puede resolverse devuelve ErrClosed.
+	Consume(ctx context.Context, msgs chan<- Message) error
+
+	// Cancela el contexto del método Consume, desbloqueando el llamado
+	StopConsuming()
+
+	// Se desconecta del MOM al que estaba conectado.
+	// Si ocurre un error interno que no puede resolverse devuelve ErrClosed.
 	Close() error
 }

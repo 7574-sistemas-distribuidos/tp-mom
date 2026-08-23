@@ -40,7 +40,6 @@ func GetWaitOptions() WaitOptions {
 	}
 }
 
-// Remove removes the first occurrence of an element from a slice
 func Remove[T comparable](slice []T, element T) []T {
 	for i, value := range slice {
 		if value == element {
@@ -69,7 +68,6 @@ type binding struct {
 
 func WaitForExchangeBindings(
 	exchangeName string,
-	key string,
 	expectedQueues int,
 	opts WaitOptions,
 ) error {
@@ -91,7 +89,7 @@ func WaitForExchangeBindings(
 			return fmt.Errorf("failed to get bindings: %w", err)
 		}
 
-		uniqueQueues := uniqueDestinations(bindings, key)
+		uniqueQueues := uniqueDestinations(bindings)
 		if len(uniqueQueues) >= expectedQueues {
 			return nil
 		}
@@ -128,10 +126,10 @@ func getExchangeBindings(exchangeName string, opts WaitOptions) ([]binding, erro
 	return bindings, nil
 }
 
-func uniqueDestinations(bindings []binding, key string) []string {
+func uniqueDestinations(bindings []binding) []string {
 	seen := make(map[string]struct{})
 	for _, b := range bindings {
-		if b.DestinationType == "queue" && b.RoutingKey == key {
+		if b.DestinationType == "queue" {
 			seen[b.Destination] = struct{}{}
 		}
 	}
