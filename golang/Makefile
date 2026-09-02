@@ -2,8 +2,7 @@ SHELL := /bin/bash
 PWD := $(shell pwd)
 
 up:
-	COMPOSE_HTTP_TIMEOUT=300 docker compose -f docker-compose.yaml up --build --remove-orphans --detach
-	docker compose -f docker-compose.yaml logs --follow go-tests
+	COMPOSE_HTTP_TIMEOUT=300 docker compose -f docker-compose.yaml up --build --remove-orphans --attach go-tests
 .PHONY: up
 
 local:
@@ -22,7 +21,7 @@ logs:
 
 test:
 	COMPOSE_HTTP_TIMEOUT=300 docker compose -f docker-compose.yaml up --build --remove-orphans \
-		--abort-on-container-exit --exit-code-from go-tests; \
+		--abort-on-container-exit --exit-code-from go-tests --attach go-tests; \
 	TEST_EXIT_CODE=$$?; \
 	docker compose -f docker-compose.yaml down -t 5; \
 	exit $$TEST_EXIT_CODE
