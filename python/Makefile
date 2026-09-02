@@ -22,9 +22,9 @@ logs:
 .PHONY: logs
 
 test:
-	COMPOSE_HTTP_TIMEOUT=300 docker compose -f docker-compose.yaml up --build --remove-orphans --detach
-	docker compose -f docker-compose.yaml logs --follow tests; \
-	TEST_EXIT_CODE=$$(docker inspect tests --format='{{.State.ExitCode}}'); \
-	docker compose -f docker-compose.yaml stop -t 1 && docker compose -f docker-compose.yaml down; \
+	COMPOSE_HTTP_TIMEOUT=300 docker compose -f docker-compose.yaml up --build --remove-orphans \
+		--abort-on-container-exit --exit-code-from tests; \
+	TEST_EXIT_CODE=$$?; \
+	docker compose -f docker-compose.yaml down -t 5; \
 	exit $$TEST_EXIT_CODE
 .PHONY: test
