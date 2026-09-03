@@ -26,6 +26,8 @@ Al momento de la evaluación y ejecución de las pruebas se **descartarán** los
 
 `make local`: Ejecuta las pruebas de integración desde el Host, facilitando el desarrollo. Se explica con mayor detalle dentro de su sección.
 
+`make test` : Destinado a pruebas automáticas desde la cátedra. Inicia contenedores de RabbitMQ  y de pruebas de integración. Espera a la finalización de las pruebas y copia el código de retorno.
+
 ## Pruebas locales desde el Host
 
 Habiendo iniciado el contenedor de RabbitMQ o configurado una instancia local del mismo pueden ejecutarse las pruebas sin necesidad de detener y reiniciar los contenedores ejecutando `make local`, siempre que se cumplan los siguientes requisitos.
